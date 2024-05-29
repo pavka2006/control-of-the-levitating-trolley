@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="Forward">
+    <file>Forward.png</file>
+  </qresource>
+  <qresource prefix="Back">
+    <file>Back.png</file>
+  </qresource>
+</RCC>

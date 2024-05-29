@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QIcon, QCloseEvent
 from threading import Thread, current_thread
 from functools import wraps
 from icecream import ic
@@ -7,7 +8,7 @@ from serial import Serial, SerialException, SerialTimeoutException
 from os.path import abspath
 from os import curdir, walk, mkdir
 
-ic.configureOutput(prefix="", outputFunction=print)
+ic.configureOutput(includeContext=True)
 
 
 class Variables:
@@ -103,7 +104,6 @@ def message_for_user(text: str, type_mes='Information'):
         ic(f'Вызов дизайна из доп потока: {text}')
 
 
-# ToDo
 def make_sequence(mode: str, side: str | int, count: int | str):
     """
     Создание hex-файла для работы Arduino
@@ -118,5 +118,221 @@ def make_sequence(mode: str, side: str | int, count: int | str):
         pass
     file_path = abspath(curdir).replace('\\', '/') + f'/Scripts/Arduino_{mode}_{side}_{count}.hex'
     if f'Arduino_{mode}_{side}_{count}.hex' not in list(walk(abspath(curdir).replace('\\', '/') + '/Scripts')):
-        ...
+        text = '\n'.join([arduino_base_script[0].replace('<number>', str(i)) for i in range(count)]) + '\n'
+        text += '\n'.join([arduino_base_script[1].replace('<number>', str(i)) for i in range(2*count+2)]) + '\n'
+        text += (arduino_base_script[2].replace('<amount>', str(count)) +
+                 ', '.join([f'Hall_Sensor_Pin{i}' for i in range(count)]) + '};\n')
+        text += (arduino_base_script[3].replace('<amount>', str(count+1)) +
+                 ', '.join([f'Coil{i}' for i in range(count*2+2)]) + '};\n')
+        text += arduino_base_script[4].replace('<setup>', f'{mode};{side};{count}').replace(
+            '<amount>', str(count)) + '\n'
+        with open(file_path, 'w') as file:
+            file.write(text)
     return file_path
+
+
+style_sheets = ["""QPushButton {
+                    background-color: #CEFDF2;
+                    border: 0.5px solid #a9bdc9;
+                    padding: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #daf2e7;
+                    border-color: #a9bdc9;
+                }
+                QPushButton:pressed {
+                    background-color: #88b8b4;
+                    border-color: #a9bdc9;
+                    color: #e6fff5;
+                }
+                QPushButton:disabled {
+                    color: #e6fff5;
+                }""",
+                """QPushButton {
+                    background-color: #56f3ba;
+                    border: 0.5px solid #a9bdc9;
+                    padding: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #daf2e7;
+                    border-color: #a9bdc9;
+                }
+                QPushButton:pressed {
+                    background-color: #88b8b4;
+                    border-color: #a9bdc9;
+                    color: #e6fff5;
+                }
+                QPushButton:disabled {
+                    color: #e6fff5;
+                }""",
+                """QPushButton {
+                    background-color: #f35656;
+                    border: 0.5px solid #a9bdc9;
+                    padding: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #daf2e7;
+                    border-color: #a9bdc9;
+                }
+                QPushButton:pressed {
+                    background-color: #88b8b4;
+                    border-color: #a9bdc9;
+                    color: #e6fff5;
+                }
+                QPushButton:disabled {
+                    color: #e6fff5;
+                }""",
+                """
+                QComboBox {
+                    background-color: #CEFDF2;
+                    border: 0.5 px solid #a9bdc9;
+                    color: #185f9e;
+                    padding: 1px 2px 1px 3px;
+                }
+                QComboBox::item:selected {
+                    background: #88b8b4;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    border-left: 1px solid #a9bdc9;
+                }
+                QComboBox::down-arrow {
+                    border: 2px solid #a9bdc9;
+                    width: 6px;
+                    height: 6px;
+                    background: #e6e6e6;
+                }""",
+                """
+                QComboBox {
+                    background-color: #56f3ba;
+                    border: 0.5 px solid #a9bdc9;
+                    color: #185f9e;
+                    padding: 1px 2px 1px 3px;
+                }
+                QComboBox::item:selected {
+                    background: #88b8b4;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    border-left: 1px solid #a9bdc9;
+                }
+                QComboBox::down-arrow {
+                    border: 2px solid #a9bdc9;
+                    width: 6px;
+                    height: 6px;
+                    background: #e6e6e6;
+                }""",
+                """
+                QComboBox {
+                    background-color: #f35656;
+                    border: 0.5 px solid #a9bdc9;
+                    color: #185f9e;
+                    padding: 1px 2px 1px 3px;
+                }
+                QComboBox::item:selected {
+                    background: #88b8b4;
+                }
+                QComboBox::drop-down {
+                    subcontrol-origin: padding;
+                    subcontrol-position: top right;
+                    border-left: 1px solid #a9bdc9;
+                }
+                QComboBox::down-arrow {
+                    border: 2px solid #a9bdc9;
+                    width: 6px;
+                    height: 6px;
+                    background: #e6e6e6;
+                }""",
+                """
+                QLineEdit, QListView, QTreeView, QTableView, QAbstractSpinBox, QSpinBox {
+                    background-color: #CEFDF2;
+                    color: #185f9e;
+                    border: 1px solid #a9bdc9;
+                }""",
+                """
+                QLineEdit, QListView, QTreeView, QTableView, QAbstractSpinBox, QSpinBox {
+                    background-color: #56f3ba;
+                    color: #185f9e;
+                    border: 1px solid #a9bdc9;
+                }""",
+                """
+                QLineEdit, QListView, QTreeView, QTableView, QAbstractSpinBox, QSpinBox {
+                    background-color: #f35656;
+                    color: #185f9e;
+                    border: 1px solid #a9bdc9;
+                }"""]
+
+
+arduino_base_script = [
+                        "#define Hall_Sensor_Pin<number> A<number>;"  # number - номер датчика от 0
+                        "int Coil<number>=<number>;",  # number - номер транзистора от 1
+                        "Halls[<amount>]={",  # amount - количество датчиков
+                        "Coils[<amount>]={",  # amount - количество транзисторов
+                        """
+                        int state = 0;
+                        int count = <amount>;
+                        String receivedData;
+                        
+                        void setup() {
+                          bool stop_flag = false;
+                          Serial.begin(9600);
+                        }\n
+                        
+                        void loop() {
+                          if (Serial.available() > 0) {
+
+                            receivedData = Serial.readString();
+                            if (receivedData == "*IDN?") {
+                              Serial.println("Let's work!");
+                        
+                            } else if (receivedData == "Start") {
+                              state = 1;
+                              Serial.println("Start");
+                        
+                            } else if (receivedData == "State?") {
+                              Serial.println(String(state));
+                        
+                            } else if (receivedData == "MEAS?") {
+                              String volt = "";
+                              for(int i = 0; i < count; i++) {
+                                volt += String(analogRead(Halls[i])) + " ";
+                              Serial.println(volt);
+                              
+                            } else if (receivedData == "Setup?") {
+                              Serial.println("<setup>");
+                        
+                            } else if (receivedData == "Stop") {
+                              state = 0;
+                              Serial.println("Stop");
+                        
+                            } else if (receivedData.indexOf("Coil:") != -1) {
+                              if (receivedData.indexOf("Coil:ON") != -1) {
+                                int index1 = receivedData.indexOf("ON ") + 3;
+                          
+                                // Извлечь первое число после "ON"
+                                String strNum1 = receivedData.substring(index1, receivedData.indexOf(" ", index1));
+                                int num1 = strNum1.toInt();
+                                // Извлечь второе число после первого числа
+                                int index2 = receivedData.indexOf(" ", index1) + 1;
+                                String strNum2 = receivedData.substring(index2);
+                                int num2 = strNum2.toInt();
+                                digitalWrite(Coils[num1*2+num2], HIGH);
+                                Serial.println(String(num1) + " " + String(num2));
+                        
+                              } else {
+                                int index = receivedData.indexOf("OFF ") + 4;
+                                // Извлечь число после "OFF"
+                                String strNum = receivedData.substring(index);
+                                int num = strNum.toInt();
+                                digitalWrite(Coils[num1], LOW);
+                                Serial.println(num);
+                              }
+                              
+                            } else {
+                              Serial.println("Unknown command");
+                            }
+                          }
+                        }"""
+                        ]
